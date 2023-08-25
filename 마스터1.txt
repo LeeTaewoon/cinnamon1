@@ -1,0 +1,56 @@
+#include <SoftwareSerial.h>
+
+SoftwareSerial HC06(2, 3);
+
+// 상하 택트 스위치 연결
+const int buttonPin1 = 8;
+const int buttonPin2 = 9;
+
+// 틸트 조이스틱 연결
+const int joy_X = A0;
+
+void setup() {
+  pinMode(buttonPin1, INPUT_PULLUP);
+  pinMode(buttonPin2, INPUT_PULLUP);
+
+  Serial.begin(9600);
+  HC06.begin(9600);
+}
+
+void loop() {
+  // 택트 스위치 값 읽기
+  int button1State = digitalRead(buttonPin1);
+  int button2State = digitalRead(buttonPin2);
+
+  // 조이스틱 x축 아날로그 값 읽기
+  int valx = analogRead(joy_X);
+
+  // 택트값 전송
+  if (button1State == LOW) {
+    if (button2State == LOW) {
+      HC06.write(3);
+      Serial.println("정지");
+    } else {
+      HC06.write(1);
+      Serial.println("시계");
+    }
+  } else {
+    if (button2State == LOW) {
+      HC06.write(2);
+      Serial.println("반시계");
+    } else {
+      HC06.write(3); // 아무 동작 없음을 나타내는 값
+      Serial.println("정지");
+    }
+  }
+
+  // 0~1023의 아날로그 범위를 0,1, 180로 변환
+  // 0: 시계, 1: 변화 없음, 180: 반시계
+  int tx = 1;
+  if(valx > 610) tx = 85;
+  if(valx < 410) tx = 95;
+
+  // 정지할땐 값 전송 x
+  if(tx != 1) HC06.write(tx);
+  delay(50);
+}

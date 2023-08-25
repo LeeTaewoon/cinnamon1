@@ -1,0 +1,106 @@
+#include <SoftwareSerial.h>
+#include <Servo.h>
+
+SoftwareSerial HC06(2,3); // 블루투스 모듈과 소통하기 위한 소프트웨어 시리얼 객체 생성
+
+// 서보 초반 앵글 설정
+int angle = 90;
+
+// dc 핀
+const int ENABLE_A = 11; // 속도 조절 핀 연결
+const int IN1_A = 10; // 방향 조절1
+const int IN2_A = 9; // 방향 조절2
+
+// 서보 핀
+const int servo_a = 6; 
+
+// 서보 객체 생성
+Servo myservo;
+
+void setup() {
+  Serial.begin(9600); //PC-아두이노간
+  HC06.begin(9600); // 시리얼 통신 시작
+
+  // dc 모터 설정`
+  pinMode(ENABLE_A,OUTPUT);  
+  pinMode(IN1_A,OUTPUT);  
+  pinMode(IN2_A,OUTPUT); 
+  // 서보 모터 설정
+  myservo.attach(servo_a);
+
+  // 초기각도 90도 설정
+  myservo.write(angle);
+
+  // 이유는 모르겠지만 딜레이를 줘야 서보가 붙고 떨어짐
+  delay(20);
+
+}
+
+// dc모터 스피드 함수
+void motor_speed(int spd)
+{
+  analogWrite(ENABLE_A,spd);
+}
+// dc모터 회전방향 함수
+void motor_rotate(int rotate)
+{  
+  if ( rotate == 1 ) {  // CLOCKWISE 시계 방향
+     digitalWrite(IN1_A,HIGH);  
+     digitalWrite(IN2_A,LOW);  
+  }    
+  else if ( rotate == 2 ) { // COUNTERCLOCKWISE 반시계
+     digitalWrite(IN1_A,LOW);  
+     digitalWrite(IN2_A,HIGH);  
+  }
+  else {
+     digitalWrite(IN1_A,LOW);  
+     digitalWrite(IN2_A,LOW);  
+  }     
+}  
+void loop() {
+  if (HC06.available()) {
+    int val = HC06.read();
+    Serial.println(val);
+    if (val == 1) {
+      Serial.println("시계");
+      motor_rotate(1);
+      motor_speed(255);
+      
+    }
+    else if (val == 2) {
+      Serial.println("반시계");
+      motor_rotate(2);
+      motor_speed(255);
+    }
+    else if (val == 100 || val == 80) {
+      myservo.attach(servo_a);
+      angle = val;
+
+      Serial.println(angle);
+
+      myservo.write(angle);
+      delay(25);
+
+      if (val == 100) {
+        Serial.println("반시계");
+        motor_rotate(2);
+        motor_speed(127);
+        delay(20); // test
+      }
+      else if (val == 80) {
+        Serial.println("시계");
+        motor_rotate(1);
+        motor_speed(255);
+        delay(20); // test
+      }
+      myservo.detach();
+     // delay(25); // test
+    }
+
+    else {
+      motor_rotate(3);
+      motor_speed(0);
+    }
+    delay(10);  // Input debounce delay
+  }
+}
